@@ -36,7 +36,8 @@ class field:
         return portals_in_triangle
     def best_subfield(self,portal_list):
         subfield_contains_number = 0
-        best_end = self.base1
+        # 设置最优field顶点为候选po列表第一位
+        best_end = portal_list[0]
         portals_in_best_field = []
         for portal in portal_list:
             if not self.contains_portal(portal): continue
@@ -55,18 +56,21 @@ class best_plan:
         self.end = end
         self._starter_field = field(base1,base2,end)
         self._portal_list = portal_list
-        self.waypoints = []
+        self.waypoints = [end]
         self.total_ap = 0
         self.total_field = 0
         self.total_link = 0
     def calculate(self):
         calculate_result = self._starter_field.best_subfield(self._portal_list)
         if calculate_result and len(self._portal_list) > 1:
+            # 如果计算出来是有结果的，而且field下面还有候选po，递归查找子field
             (self._starter_field,self._portal_list) =calculate_result
             self.waypoints += [self._starter_field.end]
             self.calculate()
 
         else:
+            self.waypoints += [self._portal_list[0]]
+            self.waypoints.reverse()
             self.total_link = 3 * (len(self.waypoints) + 1)
             self.total_field = 3 * len(self.waypoints) + 1
             self.total_ap = 313 * self.total_link + 1250 * self.total_field
@@ -79,7 +83,6 @@ class best_plan:
                     ]}
     def print_result(self):
         plan_dict = [self._get_line(self.base1,self.base2)]
-        self.waypoints = self.waypoints + [self.end]
         for point in self.waypoints:
             plan_dict += [self._get_line(self.base1,point)]
             plan_dict += [self._get_line(self.base2,point)]
@@ -117,30 +120,36 @@ def get_portal_by_name(name,portal_list):
             item = portal_list.pop(id)
             return item, portal_list
         id += 1
+    raise NameError('{} portal not found'.format(name))
 
 if __name__ == '__main__':
     BASE1 = '新华门'
     BASE2 = '国家大剧院'
-    END = '中国艺苑'
+    END = '天安门广场－远眺国家博物馆'
     portals = []
     with open('portals.csv','r',encoding="utf8") as csvfile:
-        reader = csv.DictReader(csvfile)
+        reader = csv.reader(csvfile)
         for row in reader :
-            row['name'] = row['portal_name']
-            del(row['portal_name'])
-            new_portal = portal(**row)
+            data = {
+                    'name':row[0],
+                    'lat':row[1],
+                    'lon':row[2],
+                    }
+            new_portal = portal(**data)
             portals += [new_portal]
             
     (BASE1, portals) = get_portal_by_name(BASE1,portals)
     (BASE2, portals) = get_portal_by_name(BASE2,portals)
-    best_end = None
-    most_portal_in_field = 0
-    for portal in portals :
-        largest_field = field(BASE1,BASE2,portal)
-        portal_number_in_field = len(largest_field.contains_portals(portals))
-        if portal_number_in_field > most_portal_in_field:
-            best_end = portal
-            most_portal_in_field = portal_number_in_field
+    (best_end, portals) = get_portal_by_name(END,portals)
+#    这一段代码在尝试找一个能盖住最多po的field，但并不实用，可以直接指定一个po
+#    best_end = None
+#    most_portal_in_field = 0
+#    for portal in portals :
+#        largest_field = field(BASE1,BASE2,portal)
+#        portal_number_in_field = len(largest_field.contains_portals(portals))
+#        if portal_number_in_field > most_portal_in_field:
+#            best_end = portal
+#            most_portal_in_field = portal_number_in_field
     new_best_plan = best_plan(BASE1,BASE2,best_end, portals)
     new_best_plan.calculate()
     new_best_plan.print_result()
