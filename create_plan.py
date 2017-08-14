@@ -62,14 +62,13 @@ class best_plan:
         self.total_link = 0
     def calculate(self):
         calculate_result = self._starter_field.best_subfield(self._portal_list)
-        if calculate_result and len(self._portal_list) > 1:
-            # 如果计算出来是有结果的，而且field下面还有候选po，递归查找子field
-            (self._starter_field,self._portal_list) =calculate_result
-            self.waypoints += [self._starter_field.end]
+        (self._starter_field,self._portal_list) =calculate_result
+        self.waypoints += [self._starter_field.end]
+        if len(self._portal_list) > 0:
+        # 如果计算出来是有结果的，而且field下面还有候选po，递归查找子field
             self.calculate()
 
         else:
-            self.waypoints += [self._portal_list[0]]
             self.waypoints.reverse()
             self.total_link = 3 * (len(self.waypoints) + 1)
             self.total_field = 3 * len(self.waypoints) + 1
